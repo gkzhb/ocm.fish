@@ -1,6 +1,46 @@
 # Disable file completions for most commands
 complete -c ocm -f
 
+# Helper function to extract config names from files
+function __ocm_get_config_names --description "Extract configuration names from config files"
+    set -l settings_dir $OCM_SETTINGS_DIR
+    set -l include_default $argv[1]
+    
+    # Return empty if settings directory doesn't exist
+    if not test -d $settings_dir
+        return
+    end
+    
+    # Extract config names from .json and .jsonc files
+    for config_file in $settings_dir/*.json $settings_dir/*.jsonc
+        if test -f $config_file
+            basename $config_file | string replace -r '\.jsonc?$' ''
+        end
+    end
+    
+    # Include default if requested
+    if test "$include_default" = "include_default"
+        echo default
+    end
+end
+
+# Helper function to get backup names
+function __ocm_get_backup_names --description "Extract backup names from backup files"
+    set -l backup_dir $OCM_BACKUP_DIR
+    
+    # Return empty if backup directory doesn't exist
+    if not test -d $backup_dir
+        return
+    end
+    
+    # Extract backup names from .json and .jsonc files
+    for backup_file in $backup_dir/*.json $backup_dir/*.jsonc
+        if test -f $backup_file
+            basename $backup_file | string replace -r '\.jsonc?$' ''
+        end
+    end
+end
+
 # Main commands
 complete -c ocm -n "__fish_use_subcommand" -a "list" -d "List all available configurations"
 complete -c ocm -n "__fish_use_subcommand" -a "ls" -d "List all available configurations"
@@ -14,22 +54,22 @@ complete -c ocm -n "__fish_use_subcommand" -a "backup" -d "Backup current config
 complete -c ocm -n "__fish_use_subcommand" -a "restore" -d "Restore from backup"
 
 # Configuration name completion for use command
-complete -c ocm -n "__fish_seen_subcommand_from use" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end; echo default)"
+complete -c ocm -n "__fish_seen_subcommand_from use" -a "(__ocm_get_config_names include_default)"
 
 # Configuration name completion for edit command
-complete -c ocm -n "__fish_seen_subcommand_from edit" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end; echo default)"
+complete -c ocm -n "__fish_seen_subcommand_from edit" -a "(__ocm_get_config_names include_default)"
 
-# Configuration name completion for delete command
-complete -c ocm -n "__fish_seen_subcommand_from delete" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end)"
-complete -c ocm -n "__fish_seen_subcommand_from remove" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end)"
-complete -c ocm -n "__fish_seen_subcommand_from rm" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end)"
+# Configuration name completion for delete command (exclude default)
+complete -c ocm -n "__fish_seen_subcommand_from delete" -a "(__ocm_get_config_names)"
+complete -c ocm -n "__fish_seen_subcommand_from remove" -a "(__ocm_get_config_names)"
+complete -c ocm -n "__fish_seen_subcommand_from rm" -a "(__ocm_get_config_names)"
 
-# Source config completion for copy command
-complete -c ocm -n "__fish_seen_subcommand_from copy" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end; echo default)"
-complete -c ocm -n "__fish_seen_subcommand_from cp" -a "(for f in ~/.config/opencode/settings/*.json ~/.config/opencode/settings/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end; echo default)"
+# Source config completion for copy command (include default)
+complete -c ocm -n "__fish_seen_subcommand_from copy" -a "(__ocm_get_config_names include_default)"
+complete -c ocm -n "__fish_seen_subcommand_from cp" -a "(__ocm_get_config_names include_default)"
 
 # Backup completion for restore command
-complete -c ocm -n "__fish_seen_subcommand_from restore" -a "(for f in ~/.config/opencode/backups/*.json ~/.config/opencode/backups/*.jsonc; test -f \$f; and string replace -r '.*/([^/]+)\.jsonc?' '\$1' \$f; end)"
+complete -c ocm -n "__fish_seen_subcommand_from restore" -a "(__ocm_get_backup_names)"
 
 # Global options
 complete -c ocm -s s -l silent -d "Suppress standard output"

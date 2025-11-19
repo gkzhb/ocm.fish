@@ -1,3 +1,8 @@
+# Common variables
+set --global --export OCM_DEFAULT_CONFIG_DIR ~/.config/opencode
+set --global --export OCM_SETTINGS_DIR $OCM_DEFAULT_CONFIG_DIR/settings
+set --global --export OCM_BACKUP_DIR $OCM_DEFAULT_CONFIG_DIR/backups
+
 function ocm --description "Opencode configuration manager"
     # Parse silent flag
     for silent in --silent -s
@@ -10,16 +15,12 @@ function ocm --description "Opencode configuration manager"
     set --local cmd $argv[1]
     set --local config_name $argv[2]
 
-    # Default config directory
-    set --local default_config_dir ~/.config/opencode
-    set --local settings_dir $default_config_dir/settings
-
     # Ensure directories exist
-    if ! test -d $default_config_dir
-        command mkdir -p $default_config_dir
+    if ! test -d $OCM_DEFAULT_CONFIG_DIR
+        command mkdir -p $OCM_DEFAULT_CONFIG_DIR
     end
-    if ! test -d $settings_dir
-        command mkdir -p $settings_dir
+    if ! test -d $OCM_SETTINGS_DIR
+        command mkdir -p $OCM_SETTINGS_DIR
     end
 
     switch "$cmd"
@@ -96,6 +97,46 @@ function ocm --description "Opencode configuration manager"
     end
 end
 
+function _ocm_resolve_config_path --argument-names config_name
+    # Resolve configuration file path for both default and named configs
+    if test $config_name = "default"
+        # Try .jsonc first, then .json for default config
+        if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
+            echo $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
+        else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
+            echo $OCM_DEFAULT_CONFIG_DIR/opencode.json
+        else
+            echo ""
+        end
+    else
+        # For named configs, use the find function
+        _ocm_find_config_file $config_name $OCM_SETTINGS_DIR
+    end
+end
+
+function _ocm_get_current_config_path
+    # Get the current active configuration path
+    if set --query OPENCODE_CONFIG[1]
+        echo $OPENCODE_CONFIG
+    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
+        echo $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
+    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
+        echo $OCM_DEFAULT_CONFIG_DIR/opencode.json
+    else
+        echo ""
+    end
+end
+
+function _ocm_validate_config_exists --argument-names config_name
+    # Validate that a configuration exists
+    set --local config_path (_ocm_resolve_config_path $config_name)
+    if test -z "$config_path"
+        echo "ocm: Configuration \"$config_name\" not found" >&2
+        return 1
+    end
+    return 0
+end
+
 function _ocm_find_config_file --argument-names config_name settings_dir
     # Try .jsonc first, then .json
     if test -f $settings_dir/$config_name.jsonc
@@ -114,25 +155,23 @@ function _ocm_get_config_basename --argument-names config_file
 end
 
 function _ocm_list_configs
-    set --local default_config_dir ~/.config/opencode
-    set --local settings_dir $default_config_dir/settings
     set --local current_config $OPENCODE_CONFIG
 
     # Show current config first
     if set --query current_config[1]
         echo "Current: $current_config"
-    else if test -f $default_config_dir/opencode.jsonc
-        echo "Current: $default_config_dir/opencode.jsonc (default)"
-    else if test -f $default_config_dir/opencode.json
-        echo "Current: $default_config_dir/opencode.json (default)"
+    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
+        echo "Current: $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc (default)"
+    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
+        echo "Current: $OCM_DEFAULT_CONFIG_DIR/opencode.json (default)"
     end
     echo ""
 
     # List all configs in settings directory
     echo "Available configurations:"
-    if test -d $settings_dir
+    if test -d $OCM_SETTINGS_DIR
         # Find all .json and .jsonc files
-        for config in $settings_dir/*.json $settings_dir/*.jsonc
+        for config in $OCM_SETTINGS_DIR/*.json $OCM_SETTINGS_DIR/*.jsonc
             if test -f $config
                 set --local basename (_ocm_get_config_basename $config)
                 echo "  $basename"
@@ -141,59 +180,30 @@ function _ocm_list_configs
     end
 
     # Also show default config if it exists
-    if test -f $default_config_dir/opencode.jsonc
+    if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
         echo "  default (opencode.jsonc)"
-    else if test -f $default_config_dir/opencode.json
+    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
         echo "  default (opencode.json)"
     end
 end
 
 function _ocm_current_config
-    if set --query OPENCODE_CONFIG[1]
-        echo $OPENCODE_CONFIG
-    else if test -f ~/.config/opencode/opencode.jsonc
-        echo ~/.config/opencode/opencode.jsonc
-    else
+    set --local config_path (_ocm_get_current_config_path)
+    if test -z "$config_path"
         echo "No configuration found"
         return 1
     end
+    echo $config_path
 end
 
 function _ocm_use_config --argument-names config_name
-    set --local default_config_dir ~/.config/opencode
-    set --local settings_dir $default_config_dir/settings
-    set --local config_file
-
-    # Determine config file path
-    if test $config_name = "default"
-        if test -f $default_config_dir/opencode.jsonc
-            set config_file $default_config_dir/opencode.jsonc
-        else if test -f $default_config_dir/opencode.json
-            set config_file $default_config_dir/opencode.json
-        else
-            echo "ocm: Default configuration not found" >&2
-            return 1
-        end
-    else
-        set config_file (_ocm_find_config_file $config_name $settings_dir)
-        if test -z "$config_file"
-            echo "ocm: Configuration \"$config_name\" not found" >&2
-            return 1
-        end
-    end
-
-    # Check if config file exists
-    if ! test -f $config_file
-        echo "ocm: Configuration file not found: $config_file" >&2
+    # Validate config exists
+    if ! _ocm_validate_config_exists $config_name
         return 1
     end
 
-    # Validate JSONC format (basic check)
-    # Skip validation for now as JSONC may contain comments that node doesn't handle
-    # if ! command node -e "try { require('$config_file') } catch(e) { process.exit(1) }" 2>/dev/null
-    #     echo "ocm: Invalid JSON format in configuration file" >&2
-    #     return 1
-    # end
+    # Get config file path
+    set --local config_file (_ocm_resolve_config_path $config_name)
 
     # Set environment variable
     set -gx OPENCODE_CONFIG $config_file
@@ -201,8 +211,7 @@ function _ocm_use_config --argument-names config_name
 end
 
 function _ocm_create_config --argument-names config_name
-    set --local settings_dir ~/.config/opencode/settings
-    set --local config_file $settings_dir/$config_name.jsonc
+    set --local config_file $OCM_SETTINGS_DIR/$config_name.jsonc
 
     # Check if config already exists
     if test -f $config_file
@@ -230,27 +239,13 @@ function _ocm_create_config --argument-names config_name
 end
 
 function _ocm_edit_config --argument-names config_name
-    set --local default_config_dir ~/.config/opencode
-    set --local settings_dir $default_config_dir/settings
-    set --local config_file
-
-    # Determine config file path
-    if test $config_name = "default"
-        if test -f $default_config_dir/opencode.jsonc
-            set config_file $default_config_dir/opencode.jsonc
-        else if test -f $default_config_dir/opencode.json
-            set config_file $default_config_dir/opencode.json
-        else
-            echo "ocm: Default configuration not found" >&2
-            return 1
-        end
-    else
-        set config_file (_ocm_find_config_file $config_name $settings_dir)
-        if test -z "$config_file"
-            echo "ocm: Configuration \"$config_name\" not found" >&2
-            return 1
-        end
+    # Validate config exists
+    if ! _ocm_validate_config_exists $config_name
+        return 1
     end
+
+    # Get config file path
+    set --local config_file (_ocm_resolve_config_path $config_name)
 
     # Use editor from environment or fallback
     set -q EDITOR; or set -l EDITOR nano
@@ -258,20 +253,19 @@ function _ocm_edit_config --argument-names config_name
 end
 
 function _ocm_delete_config --argument-names config_name
-    set --local settings_dir ~/.config/opencode/settings
-    set --local config_file (_ocm_find_config_file $config_name $settings_dir)
-
     # Prevent deletion of default config
     if test $config_name = "default"
         echo "ocm: Cannot delete default configuration" >&2
         return 1
     end
 
-    # Check if config exists
-    if test -z "$config_file"
-        echo "ocm: Configuration \"$config_name\" not found" >&2
+    # Validate config exists (named configs only)
+    if ! _ocm_validate_config_exists $config_name
         return 1
     end
+
+    # Get config file path
+    set --local config_file (_ocm_resolve_config_path $config_name)
 
     # Confirm deletion
     echo -n "Delete configuration \"$config_name\"? (y/N): "
@@ -286,26 +280,11 @@ function _ocm_delete_config --argument-names config_name
 end
 
 function _ocm_copy_config --argument-names source_name dest_name
-    set --local settings_dir ~/.config/opencode/settings
-    set --local source_file
-    set --local dest_file $settings_dir/$dest_name.jsonc
+    set --local dest_file $OCM_SETTINGS_DIR/$dest_name.jsonc
 
-    # Determine source file path
-    if test $source_name = "default"
-        if test -f ~/.config/opencode/opencode.jsonc
-            set source_file ~/.config/opencode/opencode.jsonc
-        else if test -f ~/.config/opencode/opencode.json
-            set source_file ~/.config/opencode/opencode.json
-        else
-            echo "ocm: Default configuration not found" >&2
-            return 1
-        end
-    else
-        set source_file (_ocm_find_config_file $source_name $settings_dir)
-        if test -z "$source_file"
-            echo "ocm: Source configuration \"$source_name\" not found" >&2
-            return 1
-        end
+    # Validate source config exists
+    if ! _ocm_validate_config_exists $source_name
+        return 1
     end
 
     # Check if destination already exists
@@ -314,31 +293,25 @@ function _ocm_copy_config --argument-names source_name dest_name
         return 1
     end
 
+    # Get source file path and copy
+    set --local source_file (_ocm_resolve_config_path $source_name)
     command cp $source_file $dest_file
     echo "Copied configuration: $source_name -> $dest_name"
 end
 
 function _ocm_backup_config
-    set --local default_config_dir ~/.config/opencode
-    set --local backup_dir $default_config_dir/backups
     set --local timestamp (date +%Y%m%d_%H%M%S)
     set --local backup_name "backup_$timestamp"
-    set --local backup_file $backup_dir/$backup_name.jsonc
+    set --local backup_file $OCM_BACKUP_DIR/$backup_name.jsonc
 
     # Ensure backup directory exists
-    if ! test -d $backup_dir
-        command mkdir -p $backup_dir
+    if ! test -d $OCM_BACKUP_DIR
+        command mkdir -p $OCM_BACKUP_DIR
     end
 
-    # Determine current config file
-    set --local config_file
-    if set --query OPENCODE_CONFIG[1]
-        set config_file $OPENCODE_CONFIG
-    else if test -f $default_config_dir/opencode.jsonc
-        set config_file $default_config_dir/opencode.jsonc
-    else if test -f $default_config_dir/opencode.json
-        set config_file $default_config_dir/opencode.json
-    else
+    # Get current config file
+    set --local config_file (_ocm_get_current_config_path)
+    if test -z "$config_file"
         echo "ocm: No configuration found to backup" >&2
         return 1
     end
@@ -348,16 +321,14 @@ function _ocm_backup_config
 end
 
 function _ocm_restore_config --argument-names backup_name
-    set --local default_config_dir ~/.config/opencode
-    set --local backup_dir $default_config_dir/backups
-    set --local backup_file $backup_dir/$backup_name.jsonc
+    set --local backup_file $OCM_BACKUP_DIR/$backup_name.jsonc
 
     # Check if backup exists
     if ! test -f $backup_file
         echo "ocm: Backup \"$backup_name\" not found" >&2
         echo "Available backups:"
-        if test -d $backup_dir
-            for backup in $backup_dir/*.json $backup_dir/*.jsonc
+        if test -d $OCM_BACKUP_DIR
+            for backup in $OCM_BACKUP_DIR/*.json $OCM_BACKUP_DIR/*.jsonc
                 if test -f $backup
                     _ocm_get_config_basename $backup
                 end
@@ -366,13 +337,9 @@ function _ocm_restore_config --argument-names backup_name
         return 1
     end
 
-    # Determine current config file
-    set --local config_file
-    if test -f $default_config_dir/opencode.jsonc
-        set config_file $default_config_dir/opencode.jsonc
-    else if test -f $default_config_dir/opencode.json
-        set config_file $default_config_dir/opencode.json
-    else
+    # Get current config file path
+    set --local config_file (_ocm_get_current_config_path)
+    if test -z "$config_file"
         echo "ocm: No default configuration found" >&2
         return 1
     end
