@@ -2,6 +2,8 @@
 
 `ocm` 是一个用于管理 opencode 配置文件的命令行工具，类似于 nvm 管理 Node.js 版本的方式。
 
+> 本项目灵感来源于 [hungthai1401/occtx](https://github.com/hungthai1401/occtx)，并使用 [sst/opencode](https://github.com/sst/opencode) 和 Kimi K2 进行 vibe 编程开发。
+
 ## 功能
 
 - 列出所有可用配置

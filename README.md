@@ -4,6 +4,8 @@
 
 `ocm` is a command-line tool for managing opencode configuration files, similar to how nvm manages Node.js versions.
 
+> This project is inspired by [hungthai1401/occtx](https://github.com/hungthai1401/occtx) and vibe coded with [sst/opencode](https://github.com/sst/opencode) & Kimi K2.
+
 ## Features
 
 - List all available configurations
