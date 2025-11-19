@@ -11,8 +11,8 @@ function __ocm_get_config_names --description "Extract configuration names from 
         return
     end
     
-    # Extract config names from .json and .jsonc files
-    for config_file in $settings_dir/*.json $settings_dir/*.jsonc
+    # Extract config names from all JSON files using unified approach
+    for config_file in $settings_dir/*.json{,c}
         if test -f $config_file
             basename $config_file | string replace -r '\.jsonc?$' ''
         end
@@ -33,8 +33,8 @@ function __ocm_get_backup_names --description "Extract backup names from backup 
         return
     end
     
-    # Extract backup names from .json and .jsonc files
-    for backup_file in $backup_dir/*.json $backup_dir/*.jsonc
+    # Extract backup names from all JSON files using unified approach
+    for backup_file in $backup_dir/*.json{,c}
         if test -f $backup_file
             basename $backup_file | string replace -r '\.jsonc?$' ''
         end

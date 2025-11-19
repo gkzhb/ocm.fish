@@ -100,14 +100,8 @@ end
 function _ocm_resolve_config_path --argument-names config_name
     # Resolve configuration file path for both default and named configs
     if test $config_name = "default"
-        # Try .jsonc first, then .json for default config
-        if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-            echo $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-        else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
-            echo $OCM_DEFAULT_CONFIG_DIR/opencode.json
-        else
-            echo ""
-        end
+        # Use unified helper for default config
+        _ocm_find_json_file $OCM_DEFAULT_CONFIG_DIR/opencode
     else
         # For named configs, use the find function
         _ocm_find_config_file $config_name $OCM_SETTINGS_DIR
@@ -118,12 +112,9 @@ function _ocm_get_current_config_path
     # Get the current active configuration path
     if set --query OPENCODE_CONFIG[1]
         echo $OPENCODE_CONFIG
-    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-        echo $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
-        echo $OCM_DEFAULT_CONFIG_DIR/opencode.json
     else
-        echo ""
+        # Use unified helper for default config
+        _ocm_find_json_file $OCM_DEFAULT_CONFIG_DIR/opencode
     end
 end
 
@@ -138,11 +129,16 @@ function _ocm_validate_config_exists --argument-names config_name
 end
 
 function _ocm_find_config_file --argument-names config_name settings_dir
-    # Try .jsonc first, then .json
-    if test -f $settings_dir/$config_name.jsonc
-        echo $settings_dir/$config_name.jsonc
-    else if test -f $settings_dir/$config_name.json
-        echo $settings_dir/$config_name.json
+    # Use unified helper for named configs
+    _ocm_find_json_file $settings_dir/$config_name
+end
+
+function _ocm_find_json_file --argument-names base_path
+    # Try .jsonc first, then .json - returns empty string if neither exists
+    if test -f $base_path.jsonc
+        echo $base_path.jsonc
+    else if test -f $base_path.json
+        echo $base_path.json
     else
         echo ""
     end
@@ -160,10 +156,11 @@ function _ocm_list_configs
     # Show current config first
     if set --query current_config[1]
         echo "Current: $current_config"
-    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-        echo "Current: $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc (default)"
-    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
-        echo "Current: $OCM_DEFAULT_CONFIG_DIR/opencode.json (default)"
+    else
+        set --local default_config (_ocm_find_json_file $OCM_DEFAULT_CONFIG_DIR/opencode)
+        if test -n "$default_config"
+            echo "Current: $default_config (default)"
+        end
     end
     echo ""
 
@@ -180,10 +177,10 @@ function _ocm_list_configs
     end
 
     # Also show default config if it exists
-    if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.jsonc
-        echo "  default (opencode.jsonc)"
-    else if test -f $OCM_DEFAULT_CONFIG_DIR/opencode.json
-        echo "  default (opencode.json)"
+    set --local default_config (_ocm_find_json_file $OCM_DEFAULT_CONFIG_DIR/opencode)
+    if test -n "$default_config"
+        set --local extension (string replace -r '.*\.' '' $default_config)
+        echo "  default (opencode.$extension)"
     end
 end
 
