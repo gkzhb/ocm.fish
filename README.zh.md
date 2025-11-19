@@ -55,11 +55,12 @@ ocm restore backup_20251120_005705
 
 ### 环境变量
 
-- `OPENCODE_CONFIG`: 指定要使用的配置文件路径
+- `OPENCODE_CONFIG`: 指定要使用的配置文件路径 (支持 `.json` 和 `.jsonc` 两种格式)
 
 ```bash
 # 使用自定义配置文件
 OPENCODE_CONFIG=~/myconfig.jsonc opencode
+OPENCODE_CONFIG=~/myconfig.json opencode
 
 # 或者先设置环境变量
 export OPENCODE_CONFIG=~/myconfig.jsonc
@@ -70,9 +71,11 @@ opencode
 
 配置文件存储在以下位置：
 
-- 默认配置：`~/.config/opencode/opencode.jsonc`
-- 其他配置：`~/.config/opencode/settings/<name>.jsonc`
-- 备份文件：`~/.config/opencode/backups/backup_<timestamp>.jsonc`
+- 默认配置：`~/.config/opencode/opencode.jsonc` 或 `~/.config/opencode/opencode.json`
+- 其他配置：`~/.config/opencode/settings/<name>.jsonc` 或 `~/.config/opencode/settings/<name>.json`
+- 备份文件：`~/.config/opencode/backups/backup_<timestamp>.jsonc` 或 `~/.config/opencode/backups/backup_<timestamp>.json`
+
+**注意：** 同时支持 `.json` 和 `.jsonc` (支持注释的JSON) 两种格式。
 
 ## 配置示例
 
@@ -100,6 +103,7 @@ opencode
 2. 默认配置 (`default`) 不能被删除
 3. 配置切换通过设置 `OPENCODE_CONFIG` 环境变量实现
 4. 备份文件会自动创建在 `~/.config/opencode/backups/` 目录
+5. 所有配置文件都支持 `.json` 和 `.jsonc` (支持注释的JSON) 两种格式
 
 ## 与 nvm 的对比
 

@@ -57,11 +57,12 @@ ocm restore backup_20251120_005705
 
 ### Environment Variables
 
-- `OPENCODE_CONFIG`: Specify the configuration file path to use
+- `OPENCODE_CONFIG`: Specify the configuration file path to use (supports both `.json` and `.jsonc` formats)
 
 ```bash
 # Use custom configuration file
 OPENCODE_CONFIG=~/myconfig.jsonc opencode
+OPENCODE_CONFIG=~/myconfig.json opencode
 
 # Or set environment variable first
 export OPENCODE_CONFIG=~/myconfig.jsonc
@@ -72,9 +73,11 @@ opencode
 
 Configuration files are stored in the following locations:
 
-- Default configuration: `~/.config/opencode/opencode.jsonc`
-- Other configurations: `~/.config/opencode/settings/<name>.jsonc`
-- Backup files: `~/.config/opencode/backups/backup_<timestamp>.jsonc`
+- Default configuration: `~/.config/opencode/opencode.jsonc` or `~/.config/opencode/opencode.json`
+- Other configurations: `~/.config/opencode/settings/<name>.jsonc` or `~/.config/opencode/settings/<name>.json`
+- Backup files: `~/.config/opencode/backups/backup_<timestamp>.jsonc` or `~/.config/opencode/backups/backup_<timestamp>.json`
+
+**Note:** Both `.json` and `.jsonc` (JSON with comments) formats are supported.
 
 ## Configuration Example
 
@@ -102,6 +105,7 @@ Basic configuration file structure:
 2. Default configuration (`default`) cannot be deleted
 3. Configuration switching is achieved by setting the `OPENCODE_CONFIG` environment variable
 4. Backup files are automatically created in the `~/.config/opencode/backups/` directory
+5. Both `.json` and `.jsonc` (JSON with comments) formats are supported for all configuration files
 
 ## Comparison with nvm
 
