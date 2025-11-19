@@ -104,10 +104,9 @@ Basic configuration file structure:
 ## Notes
 
 1. Confirmation prompt when deleting configurations
-2. Default configuration (`default`) cannot be deleted
-3. Configuration switching is achieved by setting the `OPENCODE_CONFIG` environment variable
-4. Backup files are automatically created in the `~/.config/opencode/backups/` directory
-5. Both `.json` and `.jsonc` (JSON with comments) formats are supported for all configuration files
+2. Configuration switching is achieved by setting the `OPENCODE_CONFIG` environment variable (does not completely replace the default config file, but merges the contents of the `OPENCODE_CONFIG` config file on top of it and the project config)
+3. Backup files are automatically created in the `~/.config/opencode/backups/` directory
+4. Both `.json` and `.jsonc` (JSON with comments) formats are supported for all configuration files
 
 ## Comparison with nvm
 

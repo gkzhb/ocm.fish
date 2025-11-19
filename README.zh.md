@@ -102,10 +102,9 @@ opencode
 ## 注意事项
 
 1. 删除配置时会有确认提示
-2. 默认配置 (`default`) 不能被删除
-3. 配置切换通过设置 `OPENCODE_CONFIG` 环境变量实现
-4. 备份文件会自动创建在 `~/.config/opencode/backups/` 目录
-5. 所有配置文件都支持 `.json` 和 `.jsonc` (支持注释的JSON) 两种格式
+2. 配置切换通过设置 `OPENCODE_CONFIG` 环境变量实现（不会完全替换掉默认配置文件，而是在它及项目配置文件的基础上合并 `OPENCODE_CONFIG` 配置文件的内容）
+3. 备份文件会自动创建在 `~/.config/opencode/backups/` 目录
+4. 所有配置文件都支持 `.json` 和 `.jsonc` (支持注释的JSON) 两种格式
 
 ## 与 nvm 的对比
 
