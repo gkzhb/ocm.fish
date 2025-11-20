@@ -1,5 +1,7 @@
 # Opencode Configuration Manager (ocm)
 
+- [English Documentation](./README.md)
+
 `ocm` 是一个用于管理 opencode 配置文件的命令行工具，类似于 nvm 管理 Node.js 版本的方式。
 
 > 本项目灵感来源于 [hungthai1401/occtx](https://github.com/hungthai1401/occtx)，并使用 [sst/opencode](https://github.com/sst/opencode) 和 Kimi K2 进行 vibe 编程开发。
@@ -42,6 +44,9 @@ ocm create myconfig
 # 编辑配置
 ocm edit myconfig
 
+# 设置默认配置
+ocm default myconfig
+
 # 删除配置
 ocm delete myconfig
 
@@ -58,6 +63,8 @@ ocm restore backup_20251120_005705
 ### 环境变量
 
 - `OPENCODE_CONFIG`: 指定要使用的配置文件路径 (支持 `.json` 和 `.jsonc` 两种格式)
+- `ocm_current_config`: Fish 变量，显示当前激活的配置名称 (类似 `nvm_current_version`)
+- `ocm_default_config`: Fish 通用变量，显示默认配置名称 (类似 `nvm_default_version`)
 
 ```bash
 # 使用自定义配置文件
@@ -67,6 +74,12 @@ OPENCODE_CONFIG=~/myconfig.json opencode
 # 或者先设置环境变量
 export OPENCODE_CONFIG=~/myconfig.jsonc
 opencode
+
+# 检查当前和默认配置
+echo $ocm_current_config
+echo $ocm_default_config
+
+# 注意：默认配置作为通用变量存储，在所有 Fish shell 会话中持久存在
 ```
 
 ## 配置结构
@@ -90,12 +103,12 @@ opencode
   "provider": {},
   "permission": {
     "edit": "ask",
-    "bash": "ask",
+    "bash": "ask"
   },
   "instructions": [],
   "mcp": {},
   "share": "disabled",
-  "autoupdate": false,
+  "autoupdate": false
 }
 ```
 
@@ -105,14 +118,18 @@ opencode
 2. 配置切换通过设置 `OPENCODE_CONFIG` 环境变量实现（不会完全替换掉默认配置文件，而是在它及项目配置文件的基础上合并 `OPENCODE_CONFIG` 配置文件的内容）
 3. 备份文件会自动创建在 `~/.config/opencode/backups/` 目录
 4. 所有配置文件都支持 `.json` 和 `.jsonc` (支持注释的JSON) 两种格式
+5. 默认配置作为 Fish 通用变量 (`ocm_default_config`) 存储，在所有 Fish shell 会话和终端重启中持久存在
 
 ## 与 nvm 的对比
 
-| nvm                     | ocm                   |
-| ----------------------- | --------------------- |
-| `nvm list`              | `ocm list`            |
-| `nvm use <version>`     | `ocm use <config>`    |
-| `nvm current`           | `ocm current`         |
+| nvm | ocm |
+|-----|-----|
+| `nvm list` | `ocm list` |
+| `nvm use <version>` | `ocm use <config>` |
+| `nvm current` | `ocm current` |
 | `nvm install <version>` | `ocm create <config>` |
-| 管理 Node.js 版本       | 管理 opencode 配置    |
+| `nvm alias default <version>` | `ocm default <config>` |
+| `$nvm_current_version` | `$ocm_current_config` |
+| `$nvm_default_version` | `$ocm_default_config` |
+| 管理 Node.js 版本 | 管理 opencode 配置 |
 

@@ -38,6 +38,9 @@ ocm current
 # Switch to specified configuration
 ocm use dev-plugin
 
+# Set default configuration
+ocm default myconfig
+
 # Create new configuration
 ocm create myconfig
 
@@ -60,6 +63,8 @@ ocm restore backup_20251120_005705
 ### Environment Variables
 
 - `OPENCODE_CONFIG`: Specify the configuration file path to use (supports both `.json` and `.jsonc` formats)
+- `ocm_current_config`: Fish variable showing the current active configuration name (similar to `nvm_current_version`)
+- `ocm_default_config`: Universal Fish variable showing the default configuration name (similar to `nvm_default_version`)
 
 ```bash
 # Use custom configuration file
@@ -69,6 +74,12 @@ OPENCODE_CONFIG=~/myconfig.json opencode
 # Or set environment variable first
 export OPENCODE_CONFIG=~/myconfig.jsonc
 opencode
+
+# Check current and default configurations
+echo $ocm_current_config
+echo $ocm_default_config
+
+# Note: Default configuration is stored as a universal variable and persists across all Fish shell sessions
 ```
 
 ## Configuration Structure
@@ -107,6 +118,7 @@ Basic configuration file structure:
 2. Configuration switching is achieved by setting the `OPENCODE_CONFIG` environment variable (does not completely replace the default config file, but merges the contents of the `OPENCODE_CONFIG` config file on top of it and the project config)
 3. Backup files are automatically created in the `~/.config/opencode/backups/` directory
 4. Both `.json` and `.jsonc` (JSON with comments) formats are supported for all configuration files
+5. Default configuration is stored as a Fish universal variable (`ocm_default_config`) and persists across all Fish shell sessions and terminal restarts
 
 ## Comparison with nvm
 
@@ -116,4 +128,7 @@ Basic configuration file structure:
 | `nvm use <version>` | `ocm use <config>` |
 | `nvm current` | `ocm current` |
 | `nvm install <version>` | `ocm create <config>` |
+| `nvm alias default <version>` | `ocm default <config>` |
+| `$nvm_current_version` | `$ocm_current_config` |
+| `$nvm_default_version` | `$ocm_default_config` |
 | Manages Node.js versions | Manages opencode configurations |

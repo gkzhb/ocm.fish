@@ -10,6 +10,12 @@ Fish shell plugin for managing opencode configurations (similar to nvm for Node.
 
 ## Code Style Guidelines
 
+### Directory Structure
+
+- **conf.d/**: Configuration files loaded at shell startup - 包含副作用操作（目录创建、变量初始化）和变量复制（通用变量→全局变量）
+- **functions/**: Fish shell functions for ocm commands - 仅包含函数定义，避免副作用操作
+- **completions/**: Auto-completion scripts for ocm commands
+
 ### Fish Shell Conventions
 - Use `set --local` for local variables
 - Use `test` for conditionals instead of `[ ]`

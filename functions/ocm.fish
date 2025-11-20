@@ -1,27 +1,16 @@
-# Common variables
-set --global --export OCM_DEFAULT_CONFIG_DIR ~/.config/opencode
-set --global --export OCM_SETTINGS_DIR $OCM_DEFAULT_CONFIG_DIR/settings
-set --global --export OCM_BACKUP_DIR $OCM_DEFAULT_CONFIG_DIR/backups
-
 function ocm --description "Opencode configuration manager"
     # Parse silent flag
+    set --local silent_flag
     for silent in --silent -s
         if set --local index (contains --index -- $silent $argv)
-            set --erase argv[$index] && break
+            set --erase argv[$index]
+            set silent_flag 1
+            break
         end
-        set --erase silent
     end
 
     set --local cmd $argv[1]
     set --local config_name $argv[2]
-
-    # Ensure directories exist
-    if ! test -d $OCM_DEFAULT_CONFIG_DIR
-        command mkdir -p $OCM_DEFAULT_CONFIG_DIR
-    end
-    if ! test -d $OCM_SETTINGS_DIR
-        command mkdir -p $OCM_SETTINGS_DIR
-    end
 
     switch "$cmd"
         case -v --version
@@ -30,6 +19,7 @@ function ocm --description "Opencode configuration manager"
             echo "Usage: ocm list                          List all available configurations"
             echo "       ocm use <config>                  Switch to specified configuration"
             echo "       ocm current                       Show current active configuration"
+            echo "       ocm default <config>              Set default configuration"
             echo "       ocm create <config>               Create a new configuration"
             echo "       ocm edit <config>                 Edit specified configuration"
             echo "       ocm delete <config>               Delete specified configuration"
@@ -41,10 +31,13 @@ function ocm --description "Opencode configuration manager"
             echo ""
             echo "Environment Variables:"
             echo "       OPENCODE_CONFIG                   Override default config file path"
+            echo "       ocm_current_config                Current active configuration name"
+            echo "       ocm_default_config                Default configuration name"
             echo ""
             echo "Examples:"
             echo "       ocm list                          # Show all configs"
             echo "       ocm use dev-plugin                # Switch to dev-plugin config"
+            echo "       ocm default myconfig              # Set myconfig as default"
             echo "       ocm create myconfig               # Create new config"
             echo "       ocm edit default                  # Edit default config"
             echo "       OPENCODE_CONFIG=~/myconfig.jsonc opencode  # Use custom config"
@@ -53,12 +46,18 @@ function ocm --description "Opencode configuration manager"
             _ocm_list_configs
         case current
             _ocm_current_config
+        case default
+            if ! set --query config_name[1]
+                _ocm_show_default_config
+                return
+            end
+            _ocm_set_default_config $config_name
         case use
             if ! set --query config_name[1]
                 echo "ocm: Configuration name required" >&2
                 return 1
             end
-            _ocm_use_config $config_name
+            _ocm_use_config $config_name $silent_flag
         case create
             if ! set --query config_name[1]
                 echo "ocm: Configuration name required" >&2
@@ -190,10 +189,11 @@ function _ocm_current_config
         echo "No configuration found"
         return 1
     end
+    
     echo $config_path
 end
 
-function _ocm_use_config --argument-names config_name
+function _ocm_use_config --argument-names config_name silent_flag
     # Validate config exists
     if ! _ocm_validate_config_exists $config_name
         return 1
@@ -204,7 +204,14 @@ function _ocm_use_config --argument-names config_name
 
     # Set environment variable
     set -gx OPENCODE_CONFIG $config_file
-    echo "Now using configuration: $config_name ($config_file)"
+    
+    # Set fish variable for current config (similar to nvm_current_version)
+    set -g ocm_current_config $config_name
+    
+    # Silent mode support
+    if ! set --query silent_flag
+        echo "Now using configuration: $config_name ($config_file)"
+    end
 end
 
 function _ocm_create_config --argument-names config_name
@@ -351,4 +358,27 @@ function _ocm_restore_config --argument-names backup_name
 
     command cp $backup_file $config_file
     echo "Restored configuration from: $backup_name"
+end
+
+function _ocm_set_default_config --argument-names config_name
+    # Validate config exists
+    if ! _ocm_validate_config_exists $config_name
+        return 1
+    end
+
+    # Set universal variable for default config (similar to nvm_default_version)
+    set -U ocm_default_config $config_name
+    
+    echo "Set default configuration: $config_name"
+end
+
+
+function _ocm_show_default_config
+    # Check if default config is set (universal variable)
+    if set --query --universal ocm_default_config[1]
+        echo "Default configuration: $ocm_default_config"
+    else
+        echo "No default configuration set"
+        echo "Use 'ocm default <config>' to set one"
+    end
 end
